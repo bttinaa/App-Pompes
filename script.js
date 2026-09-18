@@ -389,8 +389,10 @@ function renderResults(fam){
 
 document.getElementById('backBtn').addEventListener('click', goBack);
 
-/* --- démarrage : on charge le fichier Excel, pas un JSON --- */
-fetch(EXCEL_FILE)
+/* --- démarrage : on charge le fichier Excel, pas un JSON ---
+   Le "?_=" + Date.now() force le navigateur à toujours aller chercher
+   la dernière version du fichier, jamais une copie en cache. */
+fetch(EXCEL_FILE + '?_=' + Date.now(), { cache: 'no-store' })
   .then(r => {
     if(!r.ok) throw new Error(`HTTP ${r.status} en cherchant ${EXCEL_FILE}`);
     return r.arrayBuffer();
