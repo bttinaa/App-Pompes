@@ -4,10 +4,9 @@
 
 const EXCEL_FILE = 'comparatif.xlsx'; // <- renomme toujours ton export vers ce nom
 const SHEET_NAME = 'Feuil1';
-const FIRST_COL = 2;  // colonne C (0-indexé)
-const LAST_COL  = 31; // colonne AF (0-indexé)
-const FIRST_BRAND_ROW = 6;  // ligne 7 du fichier (0-indexé)
-const LAST_BRAND_ROW  = 46; // ligne 47 du fichier (0-indexé)
+const FIRST_COL = 2;   // colonne C (0-indexé) — première colonne de catégorie
+const LAST_COL  = 31;  // colonne AF (0-indexé) — dernière colonne de catégorie connue
+const FIRST_BRAND_ROW = 6; // ligne 7 du fichier (0-indexé) — première marque
 
 function cleanText(v){
   if(v == null) return null;
@@ -25,6 +24,13 @@ function slugify(s){
 function buildDataFromWorkbook(wb){
   const ws = wb.Sheets[SHEET_NAME];
   if(!ws) throw new Error(`Feuille "${SHEET_NAME}" introuvable dans le fichier`);
+
+  // Dernière ligne réellement utilisée dans la feuille — permet d'absorber
+  // automatiquement de nouvelles lignes ajoutées par la suite, sans jamais
+  // avoir besoin de retoucher ce fichier. Les colonnes, elles, restent fixes
+  // (C à AF) car ce sont les catégories connues du site.
+  const usedRange = XLSX.utils.decode_range(ws['!ref']);
+  const lastBrandRow = Math.max(usedRange.e.r, FIRST_BRAND_ROW);
 
   function cellValue(r, c){
     const cell = ws[XLSX.utils.encode_cell({r, c})];
@@ -92,7 +98,7 @@ function buildDataFromWorkbook(wb){
 
   const brandRows = [];
   const groupLabels = {};
-  for(let r = FIRST_BRAND_ROW; r <= LAST_BRAND_ROW; r++){
+  for(let r = FIRST_BRAND_ROW; r <= lastBrandRow; r++){
     const bval = cellValue(r, 1);
     if(bval) brandRows.push({row: r, name: bval});
     const aval = cellValue(r, 0);
@@ -108,7 +114,7 @@ function buildDataFromWorkbook(wb){
 
   const brands = brandRows.map((b, i) => {
     const startR = b.row;
-    const endR = (i + 1 < brandRows.length) ? brandRows[i + 1].row - 1 : LAST_BRAND_ROW;
+    const endR = (i + 1 < brandRows.length) ? brandRows[i + 1].row - 1 : lastBrandRow;
     const products = {};
     for(let c = FIRST_COL; c <= LAST_COL; c++){
       const entries = [];
